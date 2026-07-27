@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # The bridge's only job is to reach the hosted server. A weekly run turns this CI into
+  # an uptime check for the endpoint the package points at, so a broken deploy shows up
+  # here rather than in a user's client.
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install
+        run: npm install --no-audit --no-fund
+
+      - name: Parse check
+        run: node --check index.js
+
+      - name: CLI smoke test
+        run: |
+          test "$(node index.js --version)" = "$(node -p "require('./package.json').version")"
+          node index.js --help | grep -q "vitamind-mcp"
+
+      # The real contract: spawn the published entry point exactly as a client would and
+      # drive initialize + tools/list + a live tools/call against production. A package
+      # that installs cleanly and then answers nothing looks identical to a working one
+      # from the client's side, so this is the only check that proves anything.
+      - name: Live MCP handshake
+        run: npm test
