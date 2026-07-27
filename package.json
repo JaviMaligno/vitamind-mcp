@@ -1,0 +1,45 @@
+{
+  "name": "vitamind-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for solar vitamin D: when the sun where you are can actually make vitamin D, for your skin type. Real solar geometry and live UV data.",
+  "type": "module",
+  "bin": {
+    "vitamind-mcp": "index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node test/handshake.test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "mcp-server",
+    "vitamin-d",
+    "uv-index",
+    "health",
+    "sun",
+    "solar",
+    "claude",
+    "llm"
+  ],
+  "homepage": "https://getvitamind.app/connect",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JaviMaligno/vitamind-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JaviMaligno/vitamind-mcp/issues"
+  },
+  "author": "JaviMaligno",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0"
+  }
+}
