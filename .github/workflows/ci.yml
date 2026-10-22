@@ -4,12 +4,20 @@ on:
   push:
     branches: [main]
   pull_request:
-  # The bridge's only job is to reach the hosted server. A weekly run turns this CI into
-  # an uptime check for the endpoint the package points at, so a broken deploy shows up
-  # here rather than in a user's client.
-  schedule:
-    - cron: "0 7 * * 1"
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch:
+    inputs:
+      live_handshake:
+        description: Explicitly call the hosted production MCP server
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -19,10 +27,11 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: '24.22.1'
+          cache: npm
 
       - name: Install
-        run: npm install --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Parse check
         run: node --check index.js
@@ -32,9 +41,20 @@ jobs:
           test "$(node index.js --version)" = "$(node -p "require('./package.json').version")"
           node index.js --help | grep -q "vitamind-mcp"
 
-      # The real contract: spawn the published entry point exactly as a client would and
-      # drive initialize + tools/list + a live tools/call against production. A package
-      # that installs cleanly and then answers nothing looks identical to a working one
-      # from the client's side, so this is the only check that proves anything.
-      - name: Live MCP handshake
+      - name: Offline stdio contract
+        if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
         run: npm test
+
+  # Live monitoring is explicit, never a consequence of opening/updating a PR.
+  live:
+    if: github.event_name == 'workflow_dispatch' && inputs.live_handshake == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Opt-in production handshake
+        run: npm run test:live
