@@ -1,0 +1,55 @@
+name: Dependency security
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-security-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      # The separate legacy CI/live workflow stays disabled; no enable operation.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.22.1'
+          cache: npm
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Parse offline bridge source
+        run: |
+          node --check index.js
+          node --check test/bridge.test.mjs
+          node --check test/mock-upstream.mjs
+      - name: Offline contracts (Ready only)
+        if: github.event.pull_request.draft == false
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/security-deny.cjs" <<'JS'
+          const deny = () => { throw new Error('Offline security contract blocked network'); };
+          globalThis.fetch = deny;
+          const net = require('node:net');
+          net.Socket.prototype.connect = deny;
+          net.Server.prototype.listen = deny;
+          net.connect = net.createConnection = deny;
+          require('node:tls').connect = deny;
+          for (const module of ['node:http', 'node:https']) {
+            require(module).request = require(module).get = deny;
+          }
+          require('node:http2').connect = deny;
+          const dgram = require('node:dgram');
+          dgram.Socket.prototype.connect = dgram.Socket.prototype.send = deny;
+          require('node:module').syncBuiltinESMExports();
+          JS
+          node --require "$RUNNER_TEMP/security-deny.cjs" --test --test-concurrency=2 test/bridge.test.mjs
