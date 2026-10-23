@@ -12,10 +12,11 @@
     "LICENSE"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=24.22.1"
   },
   "scripts": {
-    "test": "node test/handshake.test.mjs"
+    "test": "node --test test/bridge.test.mjs",
+    "test:live": "node test/handshake.test.mjs"
   },
   "keywords": [
     "mcp",
@@ -40,6 +41,6 @@
   "author": "JaviMaligno",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0"
+    "@modelcontextprotocol/sdk": "^1.32.1"
   }
 }

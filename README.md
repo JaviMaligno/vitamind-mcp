@@ -25,6 +25,8 @@ Most clients can connect to the hosted server directly, with **no install at all
 [getvitamind.app/connect](https://getvitamind.app/connect) for per-client steps. Use this
 package when your client only launches local commands.
 
+The local bridge requires Node.js 24.22.1 or newer.
+
 ```json
 {
   "mcpServers": {
@@ -94,6 +96,17 @@ this package would drift from the app that people actually use.
 Estimates for healthy skin under clear-sky or forecast conditions. They ignore aerosols,
 ground reflectance, sunscreen and individual variation, and they are not a substitute for
 advice from a professional. Do not use them to plan an intentional burn.
+
+## Development checks
+
+Use `npm ci --ignore-scripts` to install the committed dependency lock. `npm test`
+spawns the CLI with a synthetic upstream through mocked fetch; it opens no TCP
+listener and does not contact the hosted service. CI runs these offline contracts
+on Ready PRs; drafts run parse and CLI checks.
+
+`npm run test:live` contacts production. It is available only as an explicit local
+command or the `live_handshake` workflow-dispatch opt-in, never on PR events.
+The offline checks do not establish production availability or real UV results.
 
 ## Links
 
